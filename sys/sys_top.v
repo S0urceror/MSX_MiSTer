@@ -1171,12 +1171,12 @@ alsa alsa
 
 ////////////////  User I/O (USB 3.0 connector) /////////////////////////
 
-assign USER_IO[0] =                       !user_out[0]  ? 1'b0 : 1'bZ;
-assign USER_IO[1] =                       !user_out[1]  ? 1'b0 : 1'bZ;
-assign USER_IO[2] = !(SW[1] ? HDMI_I2S   : user_out[2]) ? 1'b0 : 1'bZ;
+assign USER_IO[0] =                       !user_out[0]  ? 1'b0 : 1'b1; //1'bZ; DEBUG
+assign USER_IO[1] =                       !user_out[1]  ? 1'b0 : 1'bZ; // MISO
+assign USER_IO[2] = !(SW[1] ? HDMI_I2S   : user_out[2]) ? 1'b0 : 1'b1; //1'bZ; CLK
 assign USER_IO[3] =                       !user_out[3]  ? 1'b0 : 1'bZ;
-assign USER_IO[4] = !(SW[1] ? HDMI_SCLK  : user_out[4]) ? 1'b0 : 1'bZ;
-assign USER_IO[5] = !(SW[1] ? HDMI_LRCLK : user_out[5]) ? 1'b0 : 1'bZ;
+assign USER_IO[4] = !(SW[1] ? HDMI_SCLK  : user_out[4]) ? 1'b0 : 1'b1; //1'bZ; MOSI
+assign USER_IO[5] = !(SW[1] ? HDMI_LRCLK : user_out[5]) ? 1'b0 : 1'b1; //1'bZ; CS
 assign USER_IO[6] =                       !user_out[6]  ? 1'b0 : 1'bZ;
 
 assign user_in[0] =         USER_IO[0];

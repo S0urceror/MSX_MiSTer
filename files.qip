@@ -42,6 +42,8 @@ set_global_assignment -name VHDL_FILE rtl/SOUND/OPLL/VM2413/voicerom.vhd
 set_global_assignment -name VHDL_FILE rtl/SOUND/OPLL/eseopll.vhd
 set_global_assignment -name VERILOG_FILE rtl/SOUND/tr_pcm/tr_pcm.v
 set_global_assignment -name VERILOG_FILE rtl/peripheral/ps2mouse.v
+set_global_assignment -name VERILOG_FILE rtl/USB/ch376s.v
+set_global_assignment -name VERILOG_FILE rtl/USB/spi_master_simple.v
 set_global_assignment -name VHDL_FILE rtl/peripheral/eseps2.vhd
 set_global_assignment -name VHDL_FILE rtl/peripheral/iplrom.vhd
 set_global_assignment -name VHDL_FILE rtl/peripheral/kanji.vhd

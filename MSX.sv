@@ -124,7 +124,11 @@ module emu
 );
 
 //assign ADC_BUS  = 'Z;  - We need the ADC for the EAR
-assign USER_OUT = '1;
+// enable input on USER_IO[1] for ch376s MISO
+//assign USER_OUT[0] = 1'b1;
+assign USER_OUT[1] = 1'b1;
+assign USER_OUT[3] = 1'b1;
+assign USER_OUT[6] = 1'b1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = 0;
 
@@ -384,7 +388,16 @@ emsx_top emsx
 	.pAudioPSG(audioPSG),     //10bits unsigned
 	.pAudioOPLL(audioOPLL),   //10bits unsigned
 	.pAudioPCM(audioPCM),     //16bits signed
-	.pAudioTRPCM(audioTRPCM)  //8bits  signed
+	.pAudioTRPCM(audioTRPCM), //8bits  signed
+
+	// CH376s via USERIO - added by S0urceror
+	.usbSCLK 	(USER_OUT[2]),
+	.usbMISO 	(USER_IN[1]),
+	.usbMOSI 	(USER_OUT[4]),
+	.usbCS 		(USER_OUT[5]),
+
+	// Debug device via USERIO - added by S0urceror
+	.debug		(USER_OUT[0])
 );
 
 altddio_out

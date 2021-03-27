@@ -103,7 +103,16 @@ entity emsx_top is
         pAudioPSG       : out   std_logic_vector(  9 downto 0);
         pAudioOPLL      : out   std_logic_vector( 13 downto 0);
         pAudioPCM       : out   std_logic_vector( 15 downto 0);
-        pAudioTRPCM     : out   std_logic_vector(  7 downto 0)
+        pAudioTRPCM     : out   std_logic_vector(  7 downto 0);
+
+        -- CH376s via USERIO - added by S0urceror
+        usbCS			: out std_logic;
+		usbMOSI			: out std_logic;
+		usbMISO			: in std_logic;
+		usbSCLK			: out std_logic;
+
+        -- debug device - added by S0urceror
+        debug          : out std_logic
     );
 end emsx_top;
 
@@ -433,6 +442,37 @@ architecture RTL of emsx_top is
     signal  pSltInt_n       : std_logic;
     signal  pSltMerq_n      : std_logic;
 
+    -- USB CH376s signals
+    signal  UsbReq          : std_logic;
+    signal  ch376sDbi       : std_logic_vector(  7 downto 0 );
+	signal	ch376sClock		: std_logic;
+
+    -- Debug signals
+    signal  DebugReq        : std_logic;
+    signal  DebugBit0       : std_logic;
+
+    component ch376s_module is
+		port (
+			-- interface
+			spi_clk:in std_logic;
+			cpu_clk:in std_logic;
+			rd : 	in std_logic;
+			wr : 	in std_logic;
+			reset : in std_logic;
+			a0 : 	in std_logic;
+			
+			-- SPI wires
+			sck : 	out std_logic;
+			sdcs : 	out std_logic;
+			sdo : 	out std_logic; -- reg
+			sdi : 	in std_logic;
+			
+			-- data
+			din : 	in std_logic_vector (7 downto 0);
+			dout : 	out std_logic_vector (7 downto 0) -- reg
+		);
+	end component;
+
     component tr_pcm                                                            -- 2019/11/29 t.hara added
         port(
             clk21m          : in    std_logic;
@@ -502,6 +542,21 @@ begin
                 cpucen_10m   <= not cpucen_10m;
                 cpucen_10m_n <= not cpucen_10m_n;
 			   end if;
+        end if;
+    end process;
+
+    -- USB CH376s SPI clock : 671kHz = 21.48MHz / 32
+    process( reset, clk21m )
+        variable div : std_logic_vector(4 downto 0);
+    begin
+        if( rising_edge(clk21m) )then
+            if( reset = '1' )then
+                ch376sClock    <= '0';
+                div := "00000";
+	         else
+                ch376sClock <= div(4);
+                div := div + 1;
+			 end if;
         end if;
     end process;
 
@@ -1010,7 +1065,7 @@ begin
                 count       := "0000";
                 pSltWait_n  <= '1';
 
-	    else
+	        else
 
                 if( pSltMerq_n = '0' and jSltMerq_n = '1' )then
                     if( ff_clksel = '1' )then
@@ -1129,6 +1184,10 @@ begin
                     dlydbi <= portF4_bit7 & "0000000";
                 elsif( mem = '0' and adr(  7 downto 0 ) = "11110100" )then                          -- Port F4 inverted
                     dlydbi <= portF4_bit7 & "1111111";
+                elsif( mem = '0' and adr(  7 downto 1 ) = "0010000" )then                          -- CH376s / Rookiedrive
+                    dlydbi <= ch376sDbi;
+                elsif( mem = '0' and adr(  7 downto 1 ) = "0010111" )then                          -- Debug device
+                    dlydbi <= "0000000" & DebugBit0;
                 else
                     dlydbi <= (others => '1');
                 end if;
@@ -1224,10 +1283,23 @@ begin
         if( rising_edge(clk21m) )then
             if(pColdReset = '1') then
                 portF4_bit7 <= '0';
-	    else
+	        else
                 if( portF4_req = '1' and wrt = '1' )then
                     portF4_bit7 <= dbo(7);
                 end if;
+            end if;
+        end if;
+    end process;
+
+    ----------------------------------------------------------------
+    -- port Debug
+    ----------------------------------------------------------------
+    process( clk21m )
+    begin
+        if( rising_edge(clk21m) )then
+            if( DebugReq = '1' and wrt = '1' )then
+                DebugBit0 <= dbo(0);
+                debug <= dbo(0);
             end if;
         end if;
     end process;
@@ -1425,7 +1497,9 @@ begin
     systim_req  <=  req when( mem = '0' and adr(7 downto 1) = "1110011" )else '0';  -- I/O:E6-E7h   / System timer (S1990)
     swio_req    <=  req when( mem = '0' and adr(7 downto 4) = "0100" )else '0';     -- I/O:40-4Fh   / Switched I/O ports
     portF4_req  <=  req when( mem = '0' and adr(7 downto 0) = "11110100" )else '0'; -- I/O:F4h      / Port F4 device
-    tr_pcm_req  <=  req when( mem = '0' and adr(7 downto 1) = "1010010" )else '0';                  -- I/O:A4h-A5h  / turboR PCM device
+    tr_pcm_req  <=  req when( mem = '0' and adr(7 downto 1) = "1010010" )else '0';  -- I/O:A4h-A5h  / turboR PCM device
+    UsbReq      <=  req when( mem = '0' and adr(7 downto 1) = "0010000" )else '0';  -- I/O:20-21h   / MSX USB - RookieDrive
+    DebugReq    <=  req when( mem = '0' and adr(7 downto 1) = "0010111" )else '0';  -- I/O:2e-2fh   / debug device
     --  pcm_req <=  req when( mem = '0' and adr(7 downto 1) = "1110100" )else '0';  -- I/O:E8-E9h   / Test PCM
 
     BusDir  <=  '1' when( pSltAdr(7 downto 2) = "100110"                         )else  -- I/O:98-9Bh / VDP (V9938/V9958)
@@ -1440,6 +1514,8 @@ begin
                 '1' when( pSltAdr(7 downto 0) = "10100111" and portF4_mode = '1' )else  -- I/O:A7h    / Pause R800 (read only)
                 '1' when( pSltAdr(7 downto 0) = "11110100"                       )else  -- I/O:F4h    / Port F4 device
                 '1' when( pSltAdr(7 downto 1) = "1010010"                        )else  -- I/O:A4-A5h / turboR PCM device
+                '1' when( pSltAdr(7 downto 1) = "0010000"                        )else  -- I/O:20-21h / MSX USB - RookieDrive
+                '1' when( pSltAdr(7 downto 1) = "0010111"                        )else  -- I/O:2e-2fh / debug device
 --              '1' when( pSltAdr(7 downto 1) = "1110100"                        )else  -- I/O:E8-E9h / Test PCM
                 '0';
 
@@ -2156,6 +2232,25 @@ begin
         legacy_sel      => legacy_sel,
         Slot0_req       => Slot0_req,     -- here to reduce LEs
         Slot0Mode       => Slot0Mode
+    );
+
+    usb : ch376s_module
+    port map (
+        sdcs	=> 	usbCS,
+        sdo 	=> 	usbMOSI,
+        sdi 	=> 	usbMISO,
+        sck 	=> 	usbSCLK,
+    
+        dout 	=> 	ch376sDbi,
+        rd 		=> 	not wrt and UsbReq,
+        
+        din 	=> 	dbo,
+        wr 		=> 	wrt and UsbReq,
+    
+        a0 		=> 	adr (0),
+        reset 	=> 	reset,
+        spi_clk	=> 	ch376sClock, -- twice the spi clk
+        cpu_clk =>  clk21m
     );
 
 end RTL;

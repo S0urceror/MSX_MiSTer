@@ -1,0 +1,26 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "make",
+			"script": "test.com",
+			"target": "test.com",
+			"path": "rtl/USB/",
+			"fileName": "Makefile",
+			"uri": {
+				"$mid": 1,
+				"fsPath": "/Users/mario/Development/fpga/MiSTer/MSX_MiSTer/rtl/USB/Makefile",
+				"path": "/Users/mario/Development/fpga/MiSTer/MSX_MiSTer/rtl/USB/Makefile",
+				"scheme": "file"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"label": "make: test.com"
+		}
+	]
+}
