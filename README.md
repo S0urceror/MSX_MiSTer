@@ -13,6 +13,7 @@ Port of [MSX core version by Kdl](http://gnogni.altervista.org/)
 - VHD images HDD.
 - SD card support <4GB (SDSC) and >4GB (SDHC/SDXC).
 - No requires secondary SD card on I/O board v5.x. Supports both SDSC and SDHC cards.
+- RookieDrive compatible SPI and CH376s connection via USER_IO.
 
 ### Installation:
 * Copy the [*.rbf](https://github.com/MiSTer-devel/MSX_MISTer/tree/master/releases) file at the root of the SD card.
